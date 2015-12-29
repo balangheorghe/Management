@@ -3,6 +3,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 HWND windowHandle;
 
 struct copil
@@ -66,6 +67,10 @@ void calculeaza_id(long long &id, char nume[25], char prenume[25], int varsta, c
 {
 	//initial -1, copilul nu poate fi inscris
 	id = -1;
+	//initializez verifica
+	int j = 0;
+	for (j = 0;j < 8;j++)
+		verificari[j] = 0;
 	//fac verificarile de baza
 	if (verifica_nume_prenume(nume) == 1)
 		verificari[1] = 1;
@@ -106,15 +111,90 @@ void calculeaza_id(long long &id, char nume[25], char prenume[25], int varsta, c
 	}
 }
 
+int verifica_varsta_char(char varsta[4])
+{
+	int i = 0;
+	if (strlen(varsta) > 2)
+		return 0;
+	for (i = 0;i < strlen(varsta);i++)
+		if (!(varsta[i] >= '0'&&varsta[i] <= '9'))
+			return 0;
+	return 1;
+}
+
+HWND hnume, hprenume, hvarsta, hadresa, hnume_mama, hnume_tata;
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 	case WM_CREATE:
-
+		hnume = CreateWindow(L"Edit",L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 10, 200, 20, hwnd, 0, 0, 0);
+		hprenume = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 40, 200, 20, hwnd, 0, 0, 0);
+		hvarsta = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 70, 200, 20, hwnd, 0, 0, 0);
+		hadresa = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 150, 100, 200, 20, hwnd, 0, 0, 0);
+		hnume_mama = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 130, 200, 20, hwnd, 0, 0, 0);
+		hnume_tata = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 160, 200, 20, hwnd, 0, 0, 0);
+		CreateWindow(L"Button", L"Cancel", WS_BORDER | WS_CHILD | WS_VISIBLE, 232, 200, 100, 30, hwnd, (HMENU)1, 0, 0);
+		CreateWindow(L"Button", L"Inregistreaza", WS_BORDER | WS_CHILD | WS_VISIBLE, 66, 200, 100, 30, hwnd, (HMENU)2, 0, 0);
 		break;
 	case WM_COMMAND:
-		
+		switch (LOWORD(wParam))
+		{
+			case 1:
+				exit(0);
+			break;
+			case 2:
+			{
+				char nume[20], prenume[25], adresa[45], nume_mama[25], nume_tata[25],varsta[25];
+				int varsta_int;
+				int gwtstat1 = 0, gwtstat2 = 0, gwtstat3 = 0, gwtstat4 = 0, gwtstat5 = 0,gwtstat6 = 0;
+				gwtstat1 = GetWindowTextA(hnume, nume, 24);
+				gwtstat2 = GetWindowTextA(hprenume, prenume, 24);
+				gwtstat3 = GetWindowTextA(hvarsta, varsta, 24);
+				gwtstat4 = GetWindowTextA(hadresa, adresa, 44);
+				gwtstat5 = GetWindowTextA(hnume_mama, nume_mama, 24);
+				gwtstat6 = GetWindowTextA(hnume_tata, nume_tata, 24);
+				if (gwtstat1 ==0 || gwtstat2==0 || gwtstat3==0 || gwtstat4 == 0 || gwtstat5==0 || gwtstat6 ==0)
+					MessageBoxA(0, "Toate campurile trebuiesc completate!", "Eroare!", MB_OK | MB_ICONWARNING);
+				else if (verifica_varsta_char(varsta)==1)
+				{
+					long long id=0;
+					varsta_int = atoi(varsta);
+					calculeaza_id(id, nume, prenume, varsta_int, adresa, nume_mama, nume_tata);
+					if (id==-1)
+					{
+						//MessageBoxA(0, "'id'", "ID!", MB_OK | MB_ICONWARNING);
+					}
+					else
+					{
+						switch (stabilire_grupa(varsta_int))
+						{
+							case 1:
+							{
+								MessageBoxA(0, "Copil inregistrat cu succes in grupa 1!", "Inregistrare cu succes!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+							case 2:
+							{
+								MessageBoxA(0, "Copil inregistrat cu succes in grupa 2!", "Inregistrare cu succes!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+							case 3:
+							{
+								MessageBoxA(0, "Copil inregistrat cu succes in grupa 3!", "Inregistrare cu succes!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+						}
+						
+					}
+				}
+				else MessageBoxA(0, "Varsta trebuie sa contina maxim 2 cifre!", "Eroare!", MB_OK | MB_ICONWARNING);
+
+
+			}
+			break;
+		}
 		break;
 	case WM_CLOSE:
 		DestroyWindow(hwnd);
@@ -127,12 +207,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hDC;
 		hDC = BeginPaint(hwnd, &ps);
-		TextOut(hDC, 10, 10, L"Nume: ", strlen("Nume: "));
-		TextOut(hDC, 10, 30, L"Prenume: ", strlen("Prenume: "));
-		TextOut(hDC, 10, 50, L"Varsta: ", strlen("Varsta: "));
-		TextOut(hDC, 10, 70, L"Adresa: ", strlen("Adresa: "));
-		TextOut(hDC, 10, 90, L"Numele mamei: ", strlen("Numele mamei: "));
-		TextOut(hDC, 10, 110, L"Numele tatalui: ", strlen("Numele tatalui: "));
+		TextOut(hDC, 10, 12, L"Nume: ", strlen("Nume: "));
+		TextOut(hDC, 10, 42, L"Prenume: ", strlen("Prenume: "));
+		TextOut(hDC, 10, 72, L"Varsta: ", strlen("Varsta: "));
+		TextOut(hDC, 10, 102, L"Adresa: ", strlen("Adresa: "));
+		TextOut(hDC, 10, 132, L"Numele mamei: ", strlen("Numele mamei: "));
+		TextOut(hDC, 10, 162, L"Numele tatalui: ", strlen("Numele tatalui: "));
 		EndPaint(hwnd, &ps);
 		return 0;
 	}
@@ -186,7 +266,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 	int yPos = (GetSystemMetrics(SM_CYSCREEN) - 225) / 2;
 
 	windowHandle = CreateWindowEx(WS_EX_ACCEPTFILES, L"inscriere", L"Inscriere Copil",
-		/*WS_OVERLAPPEDWINDOW | WS_VISIBLE*/ WS_SYSMENU | WS_MINIMIZEBOX , xPos, yPos, 400, 225, HWND_DESKTOP, 0, hInstance, 0);
+		/*WS_OVERLAPPEDWINDOW | WS_VISIBLE*/ WS_SYSMENU | WS_MINIMIZEBOX , xPos, yPos, 400, 300, HWND_DESKTOP, 0, hInstance, 0);
 
 	//STEP4
 
