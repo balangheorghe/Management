@@ -53,10 +53,7 @@ int cauta_duplicat(int n,long long id)
 	while (fin.getline(s,100))
 	{
 		id_prov = 0;
-		for (i = 0;i < strlen(s);i++)
-			if (s[i] == '|')
-				break;
-		for (j = i + 1;j < strlen(s);j++)
+		for (j = 0;j < strlen(s);j++)
 			if (s[j] == '|')
 				break;
 			else 
@@ -317,7 +314,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 													locuri_ocupate[1]++;
 													std::ofstream fout;
 													fout.open("grupa1", std::ofstream::app);
-													fout << locuri_ocupate[1] << "|" << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
+													fout << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
 													MessageBoxA(0, "Copil inregistrat cu succes in grupa 1!", "Inregistrare cu succes!", MB_OK | MB_ICONINFORMATION);
 												}
 												break;
@@ -326,7 +323,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 													locuri_ocupate[2] ++;
 													std::ofstream fout;
 													fout.open("grupa2", std::ofstream::app);
-													fout << locuri_ocupate[2] << "|" << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
+													fout << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
 													MessageBoxA(0, "Copil inregistrat cu succes in grupa 2!", "Inregistrare cu succes!", MB_OK | MB_ICONINFORMATION);
 												}
 												break;
@@ -336,13 +333,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 													locuri_ocupate[3]++;
 													std::ofstream fout;
 													fout.open("grupa3", std::ofstream::app);
-													fout << locuri_ocupate[3] << "|" << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
+													fout  << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
 													MessageBoxA(0, "Copil inregistrat cu succes in grupa 3!", "Inregistrare cu succes!", MB_OK | MB_ICONINFORMATION);
 												}
 												break;
 										}
-									refacere_fisier_nr_locuri();
 									std::ofstream fout;
+									fout.open("copii", std::ofstream::app);
+									fout<<id << " | " << nume << " | " << prenume << " | " << varsta << " | " << adresa << " | " << nume_mama << " | " << nume_tata <<"|"<<stabilire_grupa(varsta_int)<< '\n';
+									fout.close();
+									refacere_fisier_nr_locuri();
 									fout.open("logs", std::ofstream::app);
 									time_t rawtime;
 									struct tm * timeinfo;
