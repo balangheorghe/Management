@@ -4,6 +4,14 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <time.h>
+#include <stdio.h>
+#include <cstdio>
+#include <ctime>
+#include <string>
+#include <chrono>
+#include <datetimeapi.h>
+
 HWND windowHandle;
 
 struct copil
@@ -22,9 +30,50 @@ int verificari[10];
 
 //verifica_adresa, verifica_nume_prenume - pentru a verifica daca prenumele, adresa si numele tuturor sunt caractere alfanumerice specifice
 
+int cauta_duplicat(int n,long long id)
+{
+	char g[10],s[100];
+	int i, j;
+	long long id_prov = 0;
+	switch (n)
+	{
+	case 1:
+		strcpy(g, "grupa1");
+		break;
+
+	case 2:
+		strcpy(g,"grupa2");
+		break;
+
+	case 3:
+		strcpy(g,"grupa3");
+		break;
+	}
+	std::ifstream fin(g);
+	while (fin.getline(s,100))
+	{
+		id_prov = 0;
+		for (i = 0;i < strlen(s);i++)
+			if (s[i] == '|')
+				break;
+		for (j = i + 1;j < strlen(s);j++)
+			if (s[j] == '|')
+				break;
+			else 
+			{
+				id_prov = id_prov * 10 + s[j] - '0';
+			}
+		if (id_prov == id)
+			return 1;
+	}
+	return 0;
+}
+
 int verifica_adresa(char a[45])
 {
 	int i = 0;
+	if (strlen(a) > 45)
+		return 0;
 	for (i = 0;i < strlen(a);i++)
 		if (!((a[i] >= 'a' && a[i] <= 'z') || (a[i] >= 'A' && a[i] <= 'Z') || (a[i] >= '0'&&a[i] <= '9') || a[i] == '.' || a[i] == ',' || a[i] == ' ' || a[i] == '-'))
 			return 0;
@@ -34,6 +83,8 @@ int verifica_adresa(char a[45])
 int verifica_nume_prenume(char a[45])
 {
 	int i = 0;
+	if (strlen(a) > 25)
+		return 0;
 	for (i = 0;i < strlen(a);i++)
 		if (!((a[i] >= 'a' && a[i] <= 'z') || (a[i] >= 'A' && a[i] <= 'Z') || a[i] == ' ' || a[i] == '-'))
 			return 0;
@@ -63,14 +114,43 @@ int verificare_disponibilitate_grupa(int n)
 	return 0;
 }
 
+void initializeza_locuri_gradinita()
+{
+	int nr;
+	std::ifstream fin("nrcopiigrupe");
+	if (fin.good())
+	{
+		nr = 0;
+		fin >> nr;
+		locuri_ocupate[1] = nr;
+		nr = 0;
+		fin >> nr;
+		locuri_ocupate[2] = nr;
+		nr = 0;
+		fin >> nr;
+		locuri_ocupate[3] = nr;
+	}
+	else locuri_ocupate[1] = locuri_ocupate[2] = locuri_ocupate[3] = 0;
+
+}
+
+void refacere_fisier_nr_locuri()
+{
+	std::ofstream fout("nrcopiigrupe");
+	fout << locuri_ocupate[1] << '\n' << locuri_ocupate[2] << '\n' << locuri_ocupate[3] << '\n';
+}
+
 void calculeaza_id(long long &id, char nume[25], char prenume[25], int varsta, char adresa[45], char nume_mama[25], char nume_tata[25])
 {
+	//initializez locurile ocupate
+	initializeza_locuri_gradinita();
 	//initial -1, copilul nu poate fi inscris
 	id = -1;
 	//initializez verifica
 	int j = 0;
 	for (j = 0;j < 8;j++)
 		verificari[j] = 0;
+	verificari[8] = 1;
 	//fac verificarile de baza
 	if (verifica_nume_prenume(nume) == 1)
 		verificari[1] = 1;
@@ -109,6 +189,14 @@ void calculeaza_id(long long &id, char nume[25], char prenume[25], int varsta, c
 		id = id * 100 + nume_tata[1] - 'A';
 		id = id * 10 + stabilire_grupa(varsta);
 	}
+
+	//verific duplicat
+	if (cauta_duplicat(stabilire_grupa(varsta), id) == 1)
+	{
+		verificari[8] = 0;
+		id = -1;
+	}
+	else verificari[8] = 1;
 }
 
 int verifica_varsta_char(char varsta[4])
@@ -164,29 +252,110 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					calculeaza_id(id, nume, prenume, varsta_int, adresa, nume_mama, nume_tata);
 					if (id==-1)
 					{
-						//MessageBoxA(0, "'id'", "ID!", MB_OK | MB_ICONWARNING);
-					}
-					else
-					{
-						switch (stabilire_grupa(varsta_int))
+						int i;
+						for (i = 1;i < 9;i++)
+							if (verificari[i] == 0)
+								break;
+						switch (i)
 						{
 							case 1:
 							{
-								MessageBoxA(0, "Copil inregistrat cu succes in grupa 1!", "Inregistrare cu succes!", MB_OK | MB_ICONWARNING);
+								MessageBoxA(0, "Nume invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
 							}
 							break;
 							case 2:
 							{
-								MessageBoxA(0, "Copil inregistrat cu succes in grupa 2!", "Inregistrare cu succes!", MB_OK | MB_ICONWARNING);
+								MessageBoxA(0, "Prenume invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
 							}
 							break;
 							case 3:
 							{
-								MessageBoxA(0, "Copil inregistrat cu succes in grupa 3!", "Inregistrare cu succes!", MB_OK | MB_ICONWARNING);
+								MessageBoxA(0, "Varsta invalida! Varsta trebuie sa fie intre 0 si 7 ani!", "Error!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+							case 4:
+							{
+								MessageBoxA(0, "Adresa invalida! Poate sa contina doar litere, cifre, punct, virgula, cratima!", "Error!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+							case 5:
+							{
+								MessageBoxA(0, "Numele mamei invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+							case 6:
+							{
+								MessageBoxA(0, "Numele tatalui invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
+							}
+							break;
+							case 7:
+							{
+								MessageBoxA(0, "Nu este loc disponibil in grupa pentru a inscrie copilul!", "Error!", MB_OK | MB_ICONWARNING);
+								exit(0);
+							}
+							break;
+							case 8:
+							{
+								MessageBoxA(0, "Copilul este deja inscris!", "Error!", MB_OK | MB_ICONWARNING);
+								exit(0);
 							}
 							break;
 						}
-						
+					}
+					else
+					{
+						int sigur = MessageBoxA(0, "Sunteti sigur ca doriti sa inscrieti copilul?", "Confirmare inregistrare!", MB_YESNO | MB_ICONQUESTION);
+						switch (sigur)
+						{
+							case IDYES:
+								{
+									int nr;
+									switch (stabilire_grupa(varsta_int))
+										{
+											case 1:
+												{
+													locuri_ocupate[1]++;
+													std::ofstream fout;
+													fout.open("grupa1", std::ofstream::app);
+													fout << locuri_ocupate[1] << "|" << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
+													MessageBoxA(0, "Copil inregistrat cu succes in grupa 1!", "Inregistrare cu succes!", MB_OK | MB_ICONINFORMATION);
+												}
+												break;
+											case 2:
+												{
+													locuri_ocupate[2] ++;
+													std::ofstream fout;
+													fout.open("grupa2", std::ofstream::app);
+													fout << locuri_ocupate[2] << "|" << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
+													MessageBoxA(0, "Copil inregistrat cu succes in grupa 2!", "Inregistrare cu succes!", MB_OK | MB_ICONINFORMATION);
+												}
+												break;
+											case 3:
+												{
+
+													locuri_ocupate[3]++;
+													std::ofstream fout;
+													fout.open("grupa3", std::ofstream::app);
+													fout << locuri_ocupate[3] << "|" << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << '\n';
+													MessageBoxA(0, "Copil inregistrat cu succes in grupa 3!", "Inregistrare cu succes!", MB_OK | MB_ICONINFORMATION);
+												}
+												break;
+										}
+									refacere_fisier_nr_locuri();
+									std::ofstream fout;
+									fout.open("logs", std::ofstream::app);
+									time_t rawtime;
+									struct tm * timeinfo;
+									time(&rawtime);
+									timeinfo = localtime(&rawtime);
+									fout << /*"<"<<*/ asctime(timeinfo) << "< " << ": [RegisterEvent]: " << nume << " " << prenume << " cu id: " << id << " a fost inregistrat in grupa: " << stabilire_grupa(varsta_int) << ";> \n";
+									fout.close();
+									exit(0);
+								}
+								break;
+							case IDNO:
+								break;
+						}
 					}
 				}
 				else MessageBoxA(0, "Varsta trebuie sa contina maxim 2 cifre!", "Eroare!", MB_OK | MB_ICONWARNING);
