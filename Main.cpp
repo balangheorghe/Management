@@ -432,7 +432,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 	//STEP3
 
 	int xPos = (GetSystemMetrics(SM_CXSCREEN) - 400) / 2;
-	int yPos = (GetSystemMetrics(SM_CYSCREEN) - 225) / 2;
+	int yPos = (GetSystemMetrics(SM_CYSCREEN) - 300) / 2;
 
 	windowHandle = CreateWindowEx(WS_EX_ACCEPTFILES, L"inscriere", L"Inscriere Copil",
 		/*WS_OVERLAPPEDWINDOW | WS_VISIBLE*/ WS_SYSMENU | WS_MINIMIZEBOX , xPos, yPos, 400, 300, HWND_DESKTOP, 0, hInstance, 0);
