@@ -766,11 +766,45 @@ struct copil
 void construire_struct()
 {
 	std::ifstream fin("copii");
-	char s[300];
-
+	char s[300],*p,sep[]="|";
+	int i = 0;
+	while (fin.getline(s, 299))
+	{
+		p = strtok(s, sep);
+		copil[i].id = atoll(p);
+		p = strtok(NULL, sep);
+		strcpy(copil[i].nume, p);
+		p = strtok(NULL, sep);
+		strcpy(copil[i].prenume, p);
+		p = strtok(NULL, sep);
+		copil[i].varsta = atoi(p);
+		p = strtok(NULL, sep);
+		strcpy(copil[i].adresa, p);
+		p = strtok(NULL, sep);
+		strcpy(copil[i].nume_mama, p);
+		p = strtok(NULL, sep);
+		strcpy(copil[i].nume_tata, p);
+		p = strtok(NULL, sep);
+		copil[i].grupa = atoi(p);
+	}
 }
 void search_procedure()
 {
+	construire_struct();
+	int gwtstats = 0;
+	char searchtext[45];
+	gwtstats = GetWindowTextA(search_textbox, searchtext, 45);
+	if (gwtstats == 0)
+		MessageBoxA(0, "Nu ati complet cuvantul de cautat", "Error!", MB_OK | MB_ICONWARNING);
+	else 
+	{
+		SendMessage(search_listbox, LB_RESETCONTENT, 0, 0);
+		int id; char a[50];
+		id = SendMessage(view_combobox, CB_GETCURSEL, 0, 0);
+		SendMessageA(view_combobox, CB_GETLBTEXT, id, (LPARAM)a);
+
+	}
+
 
 }
 LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -781,7 +815,7 @@ LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 		CreateWindow(L"Button", L"Search",WS_BORDER | WS_VISIBLE | WS_CHILD, 680, 5, 70, 20, hwnd, (HMENU)1, 0, 0);
 		CreateWindow(L"Button", L"Back", WS_VISIBLE | WS_CHILD, 350, 525, 70, 20, hwnd, (HMENU)2, 0, 0);
 		search_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_SORT | CBS_DROPDOWNLIST , 110, 5, 190, 200, hwnd, 0, 0, 0);
-		search_textbox = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 490, 5, 180, 20, hwnd, 0, 0, 0);
+		search_textbox = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 490, 5, 180, 20, hwnd, 0, 0, 0);
 		search_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL, 10, 50, 760, 450, hwnd, 0, 0, 0);
 		initializare_search_combo_list();
 		break;
