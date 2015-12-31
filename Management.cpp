@@ -196,6 +196,8 @@ HWND login_window, main_window, logs_window, register_window, view_window, searc
 
 HWND logs_listbox, view_combobox, view_listbox;
 
+HWND search_textbox, search_listbox, search_combobox;
+
 WNDCLASSEX mainw, logsw, registerw, vieww, searchw, editw, deletew;
 
 HINSTANCE hInst;
@@ -241,17 +243,27 @@ void delete_logs()
 		break;
 	}
 }
-
+void printare_in_logs(char s[500])
+{
+	std::ofstream fout;
+	fout.open("logs", std::ofstream::app);
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	fout << /*"<"<<*/ asctime(timeinfo) << "< " << s << ";> \n";
+	fout.close();
+}
 LRESULT CALLBACK WND_Main_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 	case WM_CREATE:
-		CreateWindow(L"Button", L"Inregistreaza copil!", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 100, 200, 30, hwnd, (HMENU)0, 0, 0);
-		CreateWindow(L"Button", L"Vizualizare grupe! ", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 150, 200, 30, hwnd, (HMENU)1, 0, 0);
-		CreateWindow(L"Button", L"Cauta copil! ", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 200, 200, 30, hwnd, (HMENU)2, 0, 0);
-		CreateWindow(L"Button", L"Editeaza o inregistrare! ", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 250, 200, 30, hwnd, (HMENU)3, 0, 0);
-		CreateWindow(L"Button", L"Sterge o inregistrare! ", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 300, 200, 30, hwnd, (HMENU)4, 0, 0);
+		CreateWindow(L"Button", L"Inregistreaza copil", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 100, 200, 30, hwnd, (HMENU)0, 0, 0);
+		CreateWindow(L"Button", L"Vizualizare grupe", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 150, 200, 30, hwnd, (HMENU)1, 0, 0);
+		CreateWindow(L"Button", L"Search", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 200, 200, 30, hwnd, (HMENU)2, 0, 0);
+		CreateWindow(L"Button", L"Editeaza o inregistrare", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 250, 200, 30, hwnd, (HMENU)3, 0, 0);
+		CreateWindow(L"Button", L"Sterge o inregistrare", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 300, 200, 30, hwnd, (HMENU)4, 0, 0);
 		CreateWindow(L"Button", L"Logs", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 350, 200, 30, hwnd, (HMENU)5, 0, 0);
 		CreateWindow(L"Button", L"Exit!", WS_VISIBLE | WS_BORDER | WS_CHILD, 40, 400, 200, 30, hwnd, (HMENU)6, 0, 0);
 		break;
@@ -279,6 +291,14 @@ LRESULT CALLBACK WND_Main_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		}
 			break;
 		case 2:
+		{
+			int x = 800;
+			int y = 600;
+			search_window = CreateWindow(L"Search_Window", L"Search", WS_SYSMENU | WS_MINIMIZEBOX, calculare_xpos(x), calculare_ypos(y), x, y, HWND_DESKTOP, 0, 0, 0);
+			ShowWindow(main_window, 0);
+			ShowWindow(search_window, 5);
+			UpdateWindow(search_window);
+		}
 			break;
 		case 3:
 			break;
@@ -295,14 +315,17 @@ LRESULT CALLBACK WND_Main_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			}
 			break;
 		case 6:
+			remove("temp");
 			exit(0);
 			break;
 		}
 		break;
 	case WM_CLOSE:
+		remove("temp");
 		DestroyWindow(main_window);
 		break;
 	case WM_DESTROY:
+		remove("temp");
 		PostQuitMessage(0);
 		break;
 	case WM_PAINT:
@@ -499,7 +522,7 @@ LRESULT CALLBACK WND_Register_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 						}
 						std::ofstream fout;
 						fout.open("copii", std::ofstream::app);
-						fout << id << " | " << nume << " | " << prenume << " | " << varsta << " | " << adresa << " | " << nume_mama << " | " << nume_tata << "|" << stabilire_grupa(varsta_int) << '\n';
+						fout << id << "|" << nume << "|" << prenume << "|" << varsta << "|" << adresa << "|" << nume_mama << "|" << nume_tata << "|" << stabilire_grupa(varsta_int) << '\n';
 						fout.close();
 						refacere_fisier_nr_locuri();
 						fout.open("logs", std::ofstream::app);
@@ -558,7 +581,125 @@ void add_combobox()
 	SendMessage(view_combobox, CB_ADDSTRING, 0, (LPARAM) L"Grupa 1");
 	SendMessage(view_combobox, CB_ADDSTRING, 0, (LPARAM) L"Grupa 2");
 	SendMessage(view_combobox, CB_ADDSTRING, 0, (LPARAM) L"Grupa 3");
-	SendMessage(view_combobox, CB_ADDSTRING, 0, (LPARAM) L"Total Inscrisi");
+	SendMessage(view_combobox, CB_ADDSTRING, 0, (LPARAM) L"Total");
+}
+int nr_copii_grupe[4];
+void initializare_nr_copii(int &ok)
+{
+	std::ifstream fin("nrcopiigrupe");
+	int nr;
+	int r = 0;
+	ok = 1;
+	nr_copii_grupe[1] = nr_copii_grupe[2] = nr_copii_grupe[3] = 0;
+	if (fin.good())
+	{
+		while (fin >> nr)
+		{
+			r++;
+			nr_copii_grupe[r] = nr;
+		}
+	}
+	else ok = 0;
+	if (nr_copii_grupe[1] == 0 && nr_copii_grupe[2] == 0 && nr_copii_grupe[3] == 0)
+		ok = 0;
+}
+void view_initial()
+{
+	int ok;
+	initializare_nr_copii(ok);
+	if (ok == 1)
+		SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM) "Va rugam sa selectati modul de afisare dorit!");
+	else SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu exista copii inscrisi la gradinita!");
+		
+}
+void construire_sir_afisari(char s[300],char d[300])
+{
+	char *p;
+	char sep[] = " |";
+	char sir[10][200];
+	p = strtok(s, sep);
+	int i = 0;
+	while (p != NULL)
+	{
+		strcpy(sir[i], p);
+		i++;
+		p=strtok(NULL, sep);
+	}
+	strcpy(d, "- ");
+	strcat(d, sir[1]);
+	strcat(d, " ");
+	strcat(d, sir[2]);
+	strcat(d, ", ");
+	strcat(d, sir[3]);
+	strcat(d, " ani, adresa: ");
+	strcat(d, sir[4]);
+	strcat(d, " , id: ");
+	strcat(d, sir[0]);
+	d[strlen(d)] = NULL;
+}
+void afisare_grupe()
+{
+	char a[50],d[50];
+	char s[300];
+	int id;
+	int ok1, ok2;
+	ok2 = 1;
+	SendMessage(view_listbox, LB_RESETCONTENT, 0, 0);
+	id = SendMessage(view_combobox, CB_GETCURSEL, 0, 0);
+	SendMessageA(view_combobox, CB_GETLBTEXT, id, (LPARAM)a);
+	initializare_nr_copii(ok1);
+	if (strcmp(a, "Grupa 1") == 0)
+	{
+		if (nr_copii_grupe[1] != 0)
+			strcpy(d, "grupa1");
+		else ok2 = 0;
+	}
+	else if (strcmp(a, "Grupa 2") == 0)
+	{
+		if (nr_copii_grupe[2] != 0)
+			strcpy(d, "grupa2");
+		else ok2 = 0;
+	}
+	else if (strcmp(a, "Grupa 3") == 0)
+	{
+		if (nr_copii_grupe[3] != 0)
+			strcpy(d, "grupa3");
+		else ok2 = 0;
+	}
+	else if (strcmp(a, "Total") == 0)
+	{
+		if (nr_copii_grupe[1] != 0 || nr_copii_grupe[2] != 0 || nr_copii_grupe[3] != 0)
+			strcpy(d, "copii");
+		else ok2 = 0;
+	}
+	else strcpy(d, "a");
+	if (ok2 == 0)
+		strcpy(d, "abcde");
+	std::ifstream fin(d);
+	if (strlen(d) > 3)
+	{
+		if (ok1 == 1)
+		{
+					
+			if (fin.good())
+			{
+				if (strcmp(a, "Total") != 0)
+					strcat(a, " are urmatorii copii inscrisi:");
+				else strcat(a, " copii inscrisi: ");
+				SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM)a);
+				while (fin.getline(s, 300))
+				{
+					char d[300];
+					construire_sir_afisari(s,d);
+					SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM)d);
+				}
+			}
+			else SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu exista copii inscrisi in grupa curent selectata!");
+		}
+		else SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu exista copii inscrisi la gradinita!");
+	}
+	else SendMessageA(view_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu ati selectat corect modul de afisare dorit!");
+
 }
 
 LRESULT CALLBACK WND_View_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -567,12 +708,24 @@ LRESULT CALLBACK WND_View_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	{
 	case WM_CREATE:
 		view_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_SORT | CBS_DROPDOWNLIST | CBS_HASSTRINGS, 10, 10, 200, 100, hwnd, 0, 0, 0);
+		view_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL , 10, 40, 760, 480, hwnd, 0, 0, 0);
+		CreateWindow(L"Button", L"View", WS_BORDER | WS_VISIBLE | WS_CHILD, 225, 10, 70, 20, hwnd, (HMENU) 2, 0,0);
+		CreateWindow(L"Button", L"Back", /*WS_BORDER |*/ WS_VISIBLE | WS_CHILD, 350, 525, 70, 20, hwnd, (HMENU)3, 0, 0);
 		add_combobox();
+		view_initial();
 		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
-
+		case 2:
+			afisare_grupe();
+			break;
+		case 3:
+			ShowWindow(main_window, 5);
+			DestroyWindow(view_window);
+			break;
+		default:
+			break;
 		}
 		break;
 	case WM_CLOSE:
@@ -587,22 +740,80 @@ LRESULT CALLBACK WND_View_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	}
 }
 
+void initializare_search_combo_list()
+{
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "Nume");
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "Prenume");
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "ID");
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "Nume mama");
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "Nume tata");
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "Varsta");
+	SendMessageA(search_combobox, CB_ADDSTRING, 0, (LPARAM) "Grupa");
+	SendMessageA(search_listbox, LB_ADDSTRING, 0, (LPARAM) "Selectati un parametru de cautare si introduceti termenul de cautat!");
+}
+struct copil
+{
+	long long id;
+	char nume[25];
+	char prenume[25];
+	char adresa[45];
+	int varsta;
+	char nume_mama[25];
+	char nume_tata[25];
+	int grupa;
+
+}copil[76];
+void construire_struct()
+{
+	std::ifstream fin("copii");
+	char s[300];
+
+}
+void search_procedure()
+{
+
+}
 LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 	case WM_CREATE:
-
+		CreateWindow(L"Button", L"Search",WS_BORDER | WS_VISIBLE | WS_CHILD, 680, 5, 70, 20, hwnd, (HMENU)1, 0, 0);
+		CreateWindow(L"Button", L"Back", WS_VISIBLE | WS_CHILD, 350, 525, 70, 20, hwnd, (HMENU)2, 0, 0);
+		search_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_SORT | CBS_DROPDOWNLIST , 110, 5, 190, 200, hwnd, 0, 0, 0);
+		search_textbox = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 490, 5, 180, 20, hwnd, 0, 0, 0);
+		search_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL, 10, 50, 760, 450, hwnd, 0, 0, 0);
+		initializare_search_combo_list();
 		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
-
+		case 2:
+			ShowWindow(main_window, 5);
+			DestroyWindow(search_window);
+		break;
+		case 1:
+			{
+				search_procedure();
+			}
+		break;
 		}
 		break;
 	case WM_CLOSE:
+		ShowWindow(main_window, 5);
 		DestroyWindow(search_window);
 		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hDC;
+		hDC = BeginPaint(hwnd, &ps);
+		TextOut(hDC, 10, 10, L" Cautare dupa: ", strlen(" Cautare dupa: "));
+		TextOut(hDC, 300, 10, L" Inserati termenul de cautat: ", strlen(" Inserati termenul de cautat: "));
+		TextOut(hDC, 10, 30, L" Rezultate: ", strlen(" Rezultate: "));
+		EndPaint(hwnd, &ps);
+		return 0;
+	}
 	case WM_DESTROY:
 		//PostQuitMessage(0);
 		break;
@@ -712,6 +923,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 {
 	hInst = hInstance;
 	showcmd = showCmd;
+	std::fstream fout;
+	fout.open("temp", std::ofstream::app);
+	fout.close();
 	//STEP 1 - declar toate clasele pe care o sa le foloses
 
 	declaratii_WINDCLASSEX(hInstance);
