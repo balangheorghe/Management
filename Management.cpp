@@ -11,6 +11,28 @@
 int locuri_ocupate[4];
 int verificari[10];
 
+char* _strrev_(char* nume)
+{
+	int i = 0;
+	char aux;
+	for (i = 0;i < strlen(nume) / 2;i++)
+	{
+		aux = nume[i];
+		nume[i] = nume[strlen(nume) - 1 - i];
+		nume[strlen(nume) - 1 - i] = aux;
+	}
+	return nume;
+}
+
+char* _strlwr_(char* nume)
+{
+	int i = 0;
+	for (i = 0;i < strlen(nume);i++)
+		if (nume[i] >= 'A' && nume[i] <= 'Z')
+			nume[i] = nume[i] + 32;
+	return nume;
+}
+
 //verifica_adresa, verifica_nume_prenume - pentru a verifica daca prenumele, adresa si numele tuturor sunt caractere alfanumerice specifice
 
 int cauta_duplicat(int n, long long id)
@@ -120,7 +142,7 @@ void refacere_fisier_nr_locuri()
 	fout << locuri_ocupate[1] << '\n' << locuri_ocupate[2] << '\n' << locuri_ocupate[3] << '\n';
 }
 
-void calculeaza_id(long long &id, char nume[25], char prenume[25], int varsta, char adresa[45], char nume_mama[25], char nume_tata[25])
+void calculeaza_id(long long &id, char nume[30], char prenume[30], int varsta, char adresa[45], char nume_mama[30], char nume_tata[30])
 {
 	//initializez locurile ocupate
 	initializeza_locuri_gradinita();
@@ -198,6 +220,8 @@ HWND logs_listbox, view_combobox, view_listbox;
 
 HWND search_textbox, search_listbox, search_combobox;
 
+HWND delete_listbox;
+
 WNDCLASSEX mainw, logsw, registerw, vieww, searchw, editw, deletew;
 
 HINSTANCE hInst;
@@ -217,14 +241,24 @@ int calculare_ypos(int a)
 void afisare_logs()
 {
 	std::ifstream fin("logs");
+	long long maxlong = 0;
+	SIZE lungime;
 	char s[1000];
 	if (fin.good())
 	{
-		while(fin.getline(s, 999))
-		SendMessageA(logs_listbox, LB_ADDSTRING, 0, (LPARAM) s);
+		while (fin.getline(s, 999))
+		{
+			GetTextExtentPoint32A(GetDC(logs_listbox), s, strlen(s), &lungime);
+			if (lungime.cx > maxlong)
+				maxlong = lungime.cx;
+			SendMessageA(logs_listbox, LB_ADDSTRING, 0, (LPARAM)s);
+		}
 	}
 	else SendMessageA(logs_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu exista evenimente de afisat! (Fisierul logs inexistent!)");
 	fin.close();
+	SendMessageA(logs_listbox, LB_SETHORIZONTALEXTENT, maxlong + 10, 0);
+	int lbn = SendMessage(logs_listbox, LB_GETCOUNT, 0, 0);
+	SendMessage(logs_listbox, LB_SETTOPINDEX, (WPARAM)lbn - 1, 0);
 }
 
 void delete_logs()
@@ -307,6 +341,14 @@ LRESULT CALLBACK WND_Main_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		case 3:
 			break;
 		case 4:
+		{
+			int x = 800;
+			int y = 600;
+			delete_window = CreateWindow(L"Delete_Window", L"Sterge o inregistrare", WS_SYSMENU | WS_MINIMIZEBOX, calculare_xpos(x), calculare_ypos(y), x, y, HWND_DESKTOP, 0, 0, 0);
+			ShowWindow(main_window, 0);
+			ShowWindow(delete_window, 5);
+			UpdateWindow(delete_window);
+		}
 			break;
 		case 5:
 			{
@@ -415,7 +457,7 @@ LRESULT CALLBACK WND_Register_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 			break;
 		case 2:
 		{
-			char nume[20], prenume[25], adresa[45], nume_mama[25], nume_tata[25], varsta[25];
+			char nume[30], prenume[30], adresa[45], nume_mama[30], nume_tata[30], varsta[30];
 			int varsta_int;
 			int gwtstat1 = 0, gwtstat2 = 0, gwtstat3 = 0, gwtstat4 = 0, gwtstat5 = 0, gwtstat6 = 0;
 			gwtstat1 = GetWindowTextA(hnume, nume, 24);
@@ -623,8 +665,8 @@ void view_initial()
 void construire_sir_afisari(char s[300],char d[300])
 {
 	char *p;
-	char sep[] = " |";
-	char sir[10][200];
+	char sep[] = "|";
+	char sir[100][200];
 	p = strtok(s, sep);
 	int i = 0;
 	while (p != NULL)
@@ -648,7 +690,7 @@ void construire_sir_afisari(char s[300],char d[300])
 
 void afisare_grupe()
 {
-	char a[50],d[50];
+	char a[500],d[500];
 	char s[300];
 	int id;
 	int ok1, ok2;
@@ -719,7 +761,7 @@ LRESULT CALLBACK WND_View_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		view_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_SORT | CBS_DROPDOWNLIST | CBS_HASSTRINGS, 10, 10, 200, 100, hwnd, 0, 0, 0);
 		view_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL , 10, 40, 760, 480, hwnd, 0, 0, 0);
 		CreateWindow(L"Button", L"View", WS_BORDER | WS_VISIBLE | WS_CHILD, 225, 10, 70, 20, hwnd, (HMENU) 2, 0,0);
-		CreateWindow(L"Button", L"Back", /*WS_BORDER |*/ WS_VISIBLE | WS_CHILD, 350, 525, 70, 20, hwnd, (HMENU)3, 0, 0);
+		CreateWindow(L"Button", L"Back", WS_BORDER | WS_VISIBLE | WS_CHILD, 350, 515, 70, 20, hwnd, (HMENU)3, 0, 0);
 		add_combobox();
 		view_initial();
 		break;
@@ -779,7 +821,7 @@ struct copil
 void construire_struct()
 {
 	std::ifstream fin("copii");
-	char s[300],*p,sep[]=" |";
+	char s[300],*p,sep[]="|";
 	int i = 0;
 	while (fin.getline(s, 299))
 	{
@@ -835,7 +877,7 @@ printchar construire_print(int i)
 	grupa[0] = (char)(copil[i].grupa + '0');
 	grupa[1] = NULL;
 	idchar[j] = NULL;
-	_strrev(idchar);
+	_strrev_(idchar);
 	varsta[0] = (char)(copil[i].varsta + '0');
 	varsta[1] = NULL;
 	strcpy(a.print, "- ");
@@ -861,8 +903,8 @@ printchar construire_print(int i)
 void itemsearch(char* parametru, char* searchtext, int &ok, SIZE &lungimepixeli, long &maxlong, int i, int permite)
 {
 	if (permite==1)
-		_strlwr(parametru);
-		if (strstr(parametru, _strlwr(searchtext)) != 0)
+		_strlwr_(parametru);
+		if (strstr(parametru, _strlwr_(searchtext)) != 0)
 		{
 			ok = 1;
 			printchar a;
@@ -893,7 +935,7 @@ void search_procedure()
 		else
 		{
 			long maxlong = 0;
-			_strlwr(searchtext);
+			_strlwr_(searchtext);
 			int ok = 0,i;
 			char parametru[45];
 			SendMessage(search_listbox, LB_RESETCONTENT, 0, 0);
@@ -929,7 +971,7 @@ void search_procedure()
 						j++;
 					}
 					idchar[j] = NULL;
-					_strrev(idchar);
+					_strrev_(idchar);
 					strcpy(parametru, idchar);
 					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i,0);
 				}
@@ -992,7 +1034,7 @@ LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 	{
 	case WM_CREATE:
 		CreateWindow(L"Button", L"Search",WS_BORDER | WS_VISIBLE | WS_CHILD, 680, 5, 70, 20, hwnd, (HMENU)1, 0, 0);
-		CreateWindow(L"Button", L"Back", WS_VISIBLE | WS_CHILD, 350, 525, 70, 20, hwnd, (HMENU)2, 0, 0);
+		CreateWindow(L"Button", L"Back", WS_VISIBLE | WS_CHILD | WS_BORDER, 365, 515, 70, 20, hwnd, (HMENU)2, 0, 0);
 		search_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_SORT | CBS_DROPDOWNLIST , 110, 5, 190, 200, hwnd, 0, 0, 0);
 		search_textbox = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 490, 5, 180, 20, hwnd, 0, 0, 0);
 		search_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL  , 10, 50, 760, 450, hwnd, 0, 0, 0);
@@ -1060,20 +1102,190 @@ LRESULT CALLBACK WND_Edit_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	}
 }
 
+void construire_listbox_delete()
+{
+	construire_struct();
+	long long maxlong = 0;
+	SIZE lungime;
+	SendMessage(delete_listbox, LB_RESETCONTENT, 0, 0);
+	printchar b;
+	int i = 0;
+	for (i = 0;i < nrcopiitotal;i++)
+	{
+		b = construire_print(i);
+		GetTextExtentPoint32A(GetDC(delete_listbox), b.print, strlen(b.print), &lungime);
+		if (lungime.cx > maxlong)
+			maxlong = lungime.cx;
+		SendMessageA(delete_listbox, LB_ADDSTRING, 0, (LPARAM) b.print);
+	}
+	SendMessageA(delete_listbox, LB_SETHORIZONTALEXTENT, maxlong + 10, 0);
+}
+
+void reconstruire_listbox_delete()
+{
+	long long maxlong = 0;
+	SIZE lungime;
+	SendMessage(delete_listbox, LB_RESETCONTENT, 0, 0);
+	printchar b;
+	int i = 0;
+	for (i = 0;i < nrcopiitotal;i++)
+	{
+		b = construire_print(i);
+		GetTextExtentPoint32A(GetDC(delete_listbox), b.print, strlen(b.print), &lungime);
+		if (lungime.cx > maxlong)
+			maxlong = lungime.cx;
+		SendMessageA(delete_listbox, LB_ADDSTRING, 0, (LPARAM)b.print);
+	}
+	SendMessageA(delete_listbox, LB_SETHORIZONTALEXTENT, maxlong + 10, 0);
+}
+
+void stergere_din_struct(int i)
+{
+	int j;
+	std::ofstream fout;
+	fout.open("logs", std::ofstream::app);
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	fout << /*"<"<<*/ asctime(timeinfo) << "< " << ": [DeleteEvent]: " << copil[i].nume << " " << copil[i].prenume << " cu id: " << copil[i].id << " a fost sters din grupa: " << copil[i].grupa << ";> \n";
+	fout.close();
+	for (j = i;j < nrcopiitotal - 1;j++)
+		copil[j] = copil[j + 1];
+	nrcopiitotal--;
+}
+
+void reconstruire_fisiere_delete_procedure(int r)
+{
+	std::ofstream f("copii");
+	std::ofstream g;
+	initializeza_locuri_gradinita();
+	switch (r)
+	{
+		case 1:
+		{
+			g.open("grupa1");
+			locuri_ocupate[1]--;
+			break;
+		}
+		case 2:
+		{
+			g.open("grupa2");
+			locuri_ocupate[2]--;
+			break;
+		}
+		case 3:
+		{
+			g.open("grupa3");
+			locuri_ocupate[3]--;
+			break;
+		}
+	}
+	refacere_fisier_nr_locuri();
+	int i;
+	for (i = 0;i < nrcopiitotal;i++)
+	{
+		f << copil[i].id << "|" << copil[i].nume << "|" << copil[i].prenume << "|" << copil[i].varsta << "|" << copil[i].adresa << "|" << copil[i].nume_mama << "|" << copil[i].nume_tata << "|" << copil[i].grupa << '\n';
+		if (copil[i].grupa == r)
+		{
+			g << copil[i].id << "|" << copil[i].nume << "|" << copil[i].prenume << "|" << copil[i].varsta << "|" << copil[i].adresa << "|" << copil[i].nume_mama << "|" << copil[i].nume_tata << '\n';
+		}
+	}
+}
+
+void delete_procedure()
+{
+	int i = 0;
+	i = SendMessage(delete_listbox, LB_GETCURSEL, 0, 0);
+	if (i < 0)
+	{
+		MessageBoxA(0, "Nu ati selectat inregistrarea!", "Error!", MB_OK | MB_ICONWARNING);
+	}
+	else
+	{
+		int raspuns;
+		raspuns = MessageBoxA(0, "Sunteti sigur ca doriti sa stergeti inregistrarea curent selectata?", "Confirmare", MB_YESNO | MB_ICONQUESTION);
+		switch (raspuns)
+		{
+		case IDNO:
+		break;
+		case IDYES:
+		{
+			int r = copil[i].grupa;
+			stergere_din_struct(i);
+			reconstruire_fisiere_delete_procedure(r);
+			reconstruire_listbox_delete();
+			MessageBoxA(0, "Inregistrare stearsa!", "Stergere Confirmata", MB_OK | MB_ICONINFORMATION);
+		}
+		break;
+		}
+	}
+}
+
+void delete_all_procedure()
+{
+	int res = MessageBoxA(0, "Sunteti sigur ca doriti sa stergeti toate inregistrarile?", "Confirmare stergere totala!", MB_YESNO | MB_ICONSTOP);
+	switch (res)
+	{
+	case IDYES:
+	{
+		remove("copii");
+		remove("grupa1");
+		remove("grupa2");
+		remove("grupa3");
+		remove("nrcopiigrupe");
+		printare_in_logs(": [DeleteEvent]: Toate inregistrarile au fost sterse! ");
+		SendMessage(delete_listbox, LB_RESETCONTENT, 0, 0);
+		SendMessageA(delete_listbox, LB_ADDSTRING, 0, (LPARAM) "Toate înregistrarile au fost sterse!");
+	}
+	break;
+	case IDNO:
+	break;
+	}
+}
+
 LRESULT CALLBACK WND_Delete_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 	case WM_CREATE:
-
+		CreateWindow(L"Button", L"Back", WS_BORDER | WS_CHILD | WS_VISIBLE, 515, 515, 70, 30, hwnd, (HMENU)2, 0, 0);
+		CreateWindow(L"Button", L"Delete", WS_BORDER | WS_CHILD | WS_VISIBLE, 175, 515, 70, 30, hwnd, (HMENU)1, 0, 0);
+		CreateWindow(L"Button", L"Delete All", WS_BORDER | WS_CHILD | WS_VISIBLE, 345, 515, 70, 30, hwnd, (HMENU)3, 0, 0);
+		delete_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL, 10, 50, 760, 450, hwnd, 0, 0, 0);
+		construire_listbox_delete();
 		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
-
+		case 2:
+			ShowWindow(main_window, 5);
+			DestroyWindow(delete_window);
+			break;
+		case 1:
+		{
+			delete_procedure();
 		}
 		break;
+		case 3:
+		{
+			delete_all_procedure();
+		}
+		break;
+		}
+		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hDC;
+		hDC = BeginPaint(hwnd, &ps);
+		TextOut(hDC, 10, 10, L" Selectati o inregistrare si apasati butonul delete pentru a o sterge! ", strlen(" Selectati o inregistrare si apasati butonul delete pentru a o sterge! "));
+		TextOut(hDC, 10, 30, L" Inregistrari: ", strlen(" Inregistrari: "));
+		EndPaint(hwnd, &ps);
+		return 0;
+	}
 	case WM_CLOSE:
+		ShowWindow(main_window, 5);
 		DestroyWindow(delete_window);
 		break;
 	case WM_DESTROY:
