@@ -142,7 +142,7 @@ void refacere_fisier_nr_locuri()
 	fout << locuri_ocupate[1] << '\n' << locuri_ocupate[2] << '\n' << locuri_ocupate[3] << '\n';
 }
 
-void calculeaza_id(long long &id, char nume[30], char prenume[30], int varsta, char adresa[45], char nume_mama[30], char nume_tata[30])
+void calculeaza_id(long long &id, char nume[30], char prenume[30], int varsta, char adresa[45], char nume_mama[30], char nume_tata[30], int valid)
 {
 	//initializez locurile ocupate
 	initializeza_locuri_gradinita();
@@ -166,8 +166,12 @@ void calculeaza_id(long long &id, char nume[30], char prenume[30], int varsta, c
 		verificari[3] = 1;
 	if (verifica_adresa(adresa) == 1)
 		verificari[4] = 1;
-	if (verificare_disponibilitate_grupa(stabilire_grupa(varsta)) == 1)
-		verificari[7] = 1;
+	if (valid == 1)
+	{
+		if (verificare_disponibilitate_grupa(stabilire_grupa(varsta)) == 1)
+			verificari[7] = 1;
+	}
+	else verificari[7] = 1;
 	int i = 1, ok = 1;
 	for (i = 1;i < 8;i++)
 		if (verificari[i] == 0)
@@ -193,12 +197,15 @@ void calculeaza_id(long long &id, char nume[30], char prenume[30], int varsta, c
 	}
 
 	//verific duplicat
-	if (cauta_duplicat(stabilire_grupa(varsta), id) == 1)
+	if (valid == 1)
 	{
-		verificari[8] = 0;
-		id = -1;
+		if (cauta_duplicat(stabilire_grupa(varsta), id) == 1)
+		{
+			verificari[8] = 0;
+			id = -1;
+		}
+		else verificari[8] = 1;
 	}
-	else verificari[8] = 1;
 }
 
 int verifica_varsta_char(char varsta[4])
@@ -214,7 +221,7 @@ int verifica_varsta_char(char varsta[4])
 
 HWND hnume, hprenume, hvarsta, hadresa, hnume_mama, hnume_tata;
 
-HWND login_window, main_window, logs_window, register_window, view_window, search_window, edit_window, delete_window;
+HWND login_window, main_window, logs_window, register_window, view_window, search_window, edit_window, delete_window, editbox_window;
 
 HWND logs_listbox, view_combobox, view_listbox;
 
@@ -222,7 +229,11 @@ HWND search_textbox, search_listbox, search_combobox;
 
 HWND delete_listbox;
 
-WNDCLASSEX mainw, logsw, registerw, vieww, searchw, editw, deletew;
+HWND edit_listbox;
+
+HWND editboxnume, editboxprenume, editboxvarsta, editboxadresa, editboxnume_mama, editboxnume_tata;
+
+WNDCLASSEX mainw, logsw, registerw, vieww, searchw, editw, deletew, editboxw;
 
 HINSTANCE hInst;
 
@@ -339,6 +350,14 @@ LRESULT CALLBACK WND_Main_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		}
 			break;
 		case 3:
+		{
+			int x = 800;
+			int y = 600;
+			edit_window = CreateWindow(L"Edit_Window", L"Editeaza o inregistrare", WS_SYSMENU | WS_MINIMIZEBOX, calculare_xpos(x), calculare_ypos(y), x, y, HWND_DESKTOP, 0, 0, 0);
+			ShowWindow(main_window, 0);
+			ShowWindow(edit_window, 5);
+			UpdateWindow(edit_window);
+		}
 			break;
 		case 4:
 		{
@@ -472,7 +491,7 @@ LRESULT CALLBACK WND_Register_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 			{
 				long long id = 0;
 				varsta_int = atoi(varsta);
-				calculeaza_id(id, nume, prenume, varsta_int, adresa, nume_mama, nume_tata);
+				calculeaza_id(id, nume, prenume, varsta_int, adresa, nume_mama, nume_tata, 1);
 				if (id == -1)
 				{
 					int i;
@@ -1078,22 +1097,356 @@ LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 	}
 }
 
+int nr_edit = 0;
+
+void construire_listbox_edit()
+{
+	construire_struct();
+	long long maxlong = 0;
+	SIZE lungime;
+	SendMessage(edit_listbox, LB_RESETCONTENT, 0, 0);
+	printchar b;
+	int i = 0;
+	for (i = 0;i < nrcopiitotal;i++)
+	{
+		b = construire_print(i);
+		GetTextExtentPoint32A(GetDC(edit_listbox), b.print, strlen(b.print), &lungime);
+		if (lungime.cx > maxlong)
+			maxlong = lungime.cx;
+		SendMessageA(edit_listbox, LB_ADDSTRING, 0, (LPARAM)b.print);
+	}
+	SendMessageA(edit_listbox, LB_SETHORIZONTALEXTENT, maxlong + 10, 0);
+}
+
+void edit_procedure()
+{
+	int i = 0;
+	i = SendMessage(edit_listbox, LB_GETCURSEL, 0, 0);
+	if (i < 0)
+	{
+		MessageBoxA(0, "Nu ati selectat o inregistrare!", "Error!", MB_OK | MB_ICONWARNING);
+	}
+	else
+	{
+		nr_edit = i;
+		int x = 400;
+		int y = 300;
+		editbox_window = CreateWindow(L"EditBox_Window", L"Editare", WS_SYSMENU | WS_MINIMIZEBOX, calculare_xpos(x), calculare_ypos(y), x, y, HWND_DESKTOP, 0, 0, 0);
+		ShowWindow(edit_window, 0);
+		ShowWindow(editbox_window, 5);
+		UpdateWindow(editbox_window);
+	}
+}
+
 LRESULT CALLBACK WND_Edit_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 	case WM_CREATE:
-
+		CreateWindow(L"Button", L"Back", WS_BORDER | WS_CHILD | WS_VISIBLE, 515, 515, 70, 30, hwnd, (HMENU)2, 0, 0);
+		CreateWindow(L"Button", L"Edit", WS_BORDER | WS_CHILD | WS_VISIBLE, 175, 515, 70, 30, hwnd, (HMENU)1, 0, 0);
+		edit_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL, 10, 50, 760, 450, hwnd, 0, 0, 0);
+		construire_listbox_edit();
 		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
-
+			case 2: 
+			{
+				ShowWindow(main_window, 5);
+				DestroyWindow(edit_window);
+				break;
+			}
+			case 1:
+			{
+				edit_procedure();
+			}
+			break;
 		}
 		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hDC;
+		hDC = BeginPaint(hwnd, &ps);
+		TextOut(hDC, 10, 10, L" Selectati o inregistrare si apasati butonul edit pentru a o edita! ", strlen(" Selectati o inregistrare si apasati butonul edit pentru a o edita! "));
+		TextOut(hDC, 10, 30, L" Inregistrari: ", strlen(" Inregistrari: "));
+		EndPaint(hwnd, &ps);
+		return 0;
+	}
 	case WM_CLOSE:
+		ShowWindow(main_window, 5);
 		DestroyWindow(edit_window);
 		break;
+	case WM_DESTROY:
+		//PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hwnd, msg, wParam, lParam);
+	}
+}
+
+void initializare_editbox()
+{
+	char c[2];
+	c[0] = copil[nr_edit].varsta + '0';
+	c[1] = NULL;
+	SendMessageA(editboxnume, EM_REPLACESEL, 0, (LPARAM) copil[nr_edit].nume);
+	SendMessageA(editboxprenume, EM_REPLACESEL, 0, (LPARAM)copil[nr_edit].prenume);
+	SendMessageA(editboxvarsta, EM_REPLACESEL, 0, (LPARAM) c);
+	SendMessageA(editboxadresa, EM_REPLACESEL, 0, (LPARAM)copil[nr_edit].adresa);
+	SendMessageA(editboxnume_mama, EM_REPLACESEL, 0, (LPARAM)copil[nr_edit].nume_mama);
+	SendMessageA(editboxnume_tata, EM_REPLACESEL, 0, (LPARAM)copil[nr_edit].nume_tata);
+}
+
+void refacere_listbox_edit()
+{
+	long long maxlong = 0;
+	SIZE lungime;
+	SendMessage(edit_listbox, LB_RESETCONTENT, 0, 0);
+	printchar b;
+	int i = 0;
+	for (i = 0;i < nrcopiitotal;i++)
+	{
+		b = construire_print(i);
+		GetTextExtentPoint32A(GetDC(edit_listbox), b.print, strlen(b.print), &lungime);
+		if (lungime.cx > maxlong)
+			maxlong = lungime.cx;
+		SendMessageA(edit_listbox, LB_ADDSTRING, 0, (LPARAM)b.print);
+	}
+	SendMessageA(edit_listbox, LB_SETHORIZONTALEXTENT, maxlong + 10, 0);
+}
+
+void reconstruire_fisiere_edit_procedure(int r)
+{
+	refacere_fisier_nr_locuri();
+	refacere_listbox_edit();
+	std::ofstream f("copii");
+	std::ofstream g1("grupa1");
+	std::ofstream g2("grupa2");
+	std::ofstream g3("grupa3");
+	int i;
+	for (i = 0;i < nrcopiitotal;i++)
+	{
+		f << copil[i].id << "|" << copil[i].nume << "|" << copil[i].prenume << "|" << copil[i].varsta << "|" << copil[i].adresa << "|" << copil[i].nume_mama << "|" << copil[i].nume_tata << "|" << copil[i].grupa << '\n';
+		if (copil[i].grupa == 1)
+		{
+			g1 << copil[i].id << "|" << copil[i].nume << "|" << copil[i].prenume << "|" << copil[i].varsta << "|" << copil[i].adresa << "|" << copil[i].nume_mama << "|" << copil[i].nume_tata << '\n';
+		}
+		else if (copil[i].grupa == 2)
+		{
+			g2 << copil[i].id << "|" << copil[i].nume << "|" << copil[i].prenume << "|" << copil[i].varsta << "|" << copil[i].adresa << "|" << copil[i].nume_mama << "|" << copil[i].nume_tata << '\n';
+		}
+		else g3 << copil[i].id << "|" << copil[i].nume << "|" << copil[i].prenume << "|" << copil[i].varsta << "|" << copil[i].adresa << "|" << copil[i].nume_mama << "|" << copil[i].nume_tata << '\n';
+	}
+	std::ofstream l;
+	l.open("logs", std::ofstream::app);
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	l << /*"<"<<*/ asctime(timeinfo) << "< " << ": [EditEvent]: Datele de inregistrare ale copilului " << copil[nr_edit].nume << " " << copil[nr_edit].prenume << " au fost modificate " << ";> \n";
+	l.close();
+}
+
+void save_edit_procedure()
+{
+	char nume[30], prenume[30], adresa[45], nume_mama[30], nume_tata[30], varsta[30];
+	int varsta_int;
+	int gwtstat1 = 0, gwtstat2 = 0, gwtstat3 = 0, gwtstat4 = 0, gwtstat5 = 0, gwtstat6 = 0;
+	gwtstat1 = GetWindowTextA(editboxnume, nume, 24);
+	gwtstat2 = GetWindowTextA(editboxprenume, prenume, 24);
+	gwtstat3 = GetWindowTextA(editboxvarsta, varsta, 24);
+	gwtstat4 = GetWindowTextA(editboxadresa, adresa, 44);
+	gwtstat5 = GetWindowTextA(editboxnume_mama, nume_mama, 24);
+	gwtstat6 = GetWindowTextA(editboxnume_tata, nume_tata, 24);
+	if (gwtstat1 == 0 || gwtstat2 == 0 || gwtstat3 == 0 || gwtstat4 == 0 || gwtstat5 == 0 || gwtstat6 == 0)
+		MessageBoxA(0, "Toate campurile trebuiesc completate!", "Eroare!", MB_OK | MB_ICONWARNING);
+	else if (verifica_varsta_char(varsta) == 1)
+	{
+		long long id = 0;
+		varsta_int = atoi(varsta);
+		calculeaza_id(id, nume, prenume, varsta_int, adresa, nume_mama, nume_tata, 0);
+		if (id == -1)
+		{
+			int i;
+			for (i = 1;i < 9;i++)
+				if (verificari[i] == 0)
+					break;
+			switch (i)
+			{
+			case 1:
+			{
+				MessageBoxA(0, "Nume invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 2:
+			{
+				MessageBoxA(0, "Prenume invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 3:
+			{
+				MessageBoxA(0, "Varsta invalida! Varsta trebuie sa fie intre 0 si 7 ani!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 4:
+			{
+				MessageBoxA(0, "Adresa invalida! Poate sa contina doar litere, cifre, punct, virgula, cratima!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 5:
+			{
+				MessageBoxA(0, "Numele mamei invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 6:
+			{
+				MessageBoxA(0, "Numele tatalui invalid! Trebuie sã contina doar litere!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 7:
+			{
+				MessageBoxA(0, "Nu este loc disponibil in grupa pentru a inscrie copilul!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			case 8:
+			{
+				MessageBoxA(0, "Copilul este deja inscris!", "Error!", MB_OK | MB_ICONWARNING);
+			}
+			break;
+			}
+		}
+		else
+		{
+			int sigur = MessageBoxA(0, "Sunteti sigur ca doriti sa salvati editarea?", "Confirmare inregistrare!", MB_YESNO | MB_ICONQUESTION);
+			switch (sigur)
+			{
+			case IDYES:
+			{
+				int varsta_int;
+				varsta_int = atoi(varsta);
+				int grupa = stabilire_grupa(varsta_int);
+				int ok = 0;
+				if (grupa != copil[nr_edit].grupa)
+				{
+					switch (grupa)
+					{
+					case 1:
+					{
+						if (locuri_ocupate[1] + 1 > 25)
+							MessageBox(0, L"Modificarea nu a putut fi salvata! Numar locuri indisponibil in noua grupa!", L"Error", MB_OK | MB_ICONWARNING);
+						else
+						{
+							ok = 1;
+							locuri_ocupate[1]++;
+							locuri_ocupate[copil[nr_edit].grupa]--;
+						}
+						break;
+					}
+					case 2:
+					{if (locuri_ocupate[2] + 1 > 25)
+						MessageBox(0, L"Modificarea nu a putut fi salvata! Numar locuri indisponibil in noua grupa!", L"Error", MB_OK | MB_ICONWARNING);
+					else
+					{
+						ok = 1;
+						locuri_ocupate[2]++;
+						locuri_ocupate[copil[nr_edit].grupa]--;
+					}
+					break;
+					}
+					case 3:
+					{if (locuri_ocupate[3] + 1 > 25)
+						MessageBox(0, L"Modificarea nu a putut fi salvata! Numar locuri indisponibil in noua grupa!", L"Error", MB_OK | MB_ICONWARNING);
+					else
+					{
+						ok = 1;
+						locuri_ocupate[3]++;
+						locuri_ocupate[copil[nr_edit].grupa]--;
+					}
+					break;
+					}
+					}
+				}
+				else ok = 1;
+				if (ok == 1)
+				{
+					copil[nr_edit].id = id;
+					strcpy(copil[nr_edit].nume, nume);
+					strcpy(copil[nr_edit].prenume, prenume);
+					strcpy(copil[nr_edit].nume_mama, nume_mama);
+					strcpy(copil[nr_edit].nume_tata, nume_tata);
+					strcpy(copil[nr_edit].adresa, adresa);
+					copil[nr_edit].varsta = atoi(varsta);
+					copil[nr_edit].grupa = stabilire_grupa(copil[nr_edit].varsta);
+					reconstruire_fisiere_edit_procedure(copil[nr_edit].grupa);
+					MessageBox(0, L"Modificari salvate cu succes!", L"Done", MB_OK | MB_ICONINFORMATION);
+					ShowWindow(edit_window, 5);
+					DestroyWindow(editbox_window);
+				}
+			}
+			break;
+			case IDNO:
+				break;
+			}
+		}
+	}
+	else MessageBoxA(0, "Varsta trebuie sa contina maxim 2 cifre!", "Eroare!", MB_OK | MB_ICONWARNING);
+
+
+}
+
+LRESULT CALLBACK WND_EditBox_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case WM_CREATE:
+		editboxnume = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 10, 200, 20, hwnd, 0, 0, 0);
+		editboxprenume = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 40, 200, 20, hwnd, 0, 0, 0);
+		editboxvarsta = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 70, 200, 20, hwnd, 0, 0, 0);
+		editboxadresa = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 150, 100, 200, 20, hwnd, 0, 0, 0);
+		editboxnume_mama = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 130, 200, 20, hwnd, 0, 0, 0);
+		editboxnume_tata = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE, 150, 160, 200, 20, hwnd, 0, 0, 0);
+		CreateWindow(L"Button", L"Cancel", WS_BORDER | WS_CHILD | WS_VISIBLE, 232, 200, 100, 30, hwnd, (HMENU)1, 0, 0);
+		CreateWindow(L"Button", L"Salveaza", WS_BORDER | WS_CHILD | WS_VISIBLE, 66, 200, 100, 30, hwnd, (HMENU)2, 0, 0);
+		initializare_editbox();
+		break;
+	case WM_COMMAND:
+		switch (LOWORD(wParam))
+		{
+		case 2:
+		{
+			save_edit_procedure();
+		}
+		break;
+		case 1:
+		{
+			ShowWindow(edit_window, 5);
+			DestroyWindow(editbox_window);
+		}
+		break;
+		}
+		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hDC;
+		hDC = BeginPaint(hwnd, &ps);
+		TextOut(hDC, 10, 12, L"Nume: ", strlen("Nume: "));
+		TextOut(hDC, 10, 42, L"Prenume: ", strlen("Prenume: "));
+		TextOut(hDC, 10, 72, L"Varsta: ", strlen("Varsta: "));
+		TextOut(hDC, 10, 102, L"Adresa: ", strlen("Adresa: "));
+		TextOut(hDC, 10, 132, L"Numele mamei: ", strlen("Numele mamei: "));
+		TextOut(hDC, 10, 162, L"Numele tatalui: ", strlen("Numele tatalui: "));
+		EndPaint(hwnd, &ps);
+		return 0;
+	}
+	case WM_CLOSE:
+	{
+		ShowWindow(edit_window, 5);
+		DestroyWindow(editbox_window);
+		break;
+	}
 	case WM_DESTROY:
 		//PostQuitMessage(0);
 		break;
@@ -1199,7 +1552,7 @@ void delete_procedure()
 	i = SendMessage(delete_listbox, LB_GETCURSEL, 0, 0);
 	if (i < 0)
 	{
-		MessageBoxA(0, "Nu ati selectat inregistrarea!", "Error!", MB_OK | MB_ICONWARNING);
+		MessageBoxA(0, "Nu ati selectat o inregistrare!", "Error!", MB_OK | MB_ICONWARNING);
 	}
 	else
 	{
@@ -1327,6 +1680,8 @@ void declaratii_WINDCLASSEX(HINSTANCE hInstance)
 	editw.lpszClassName = L"Edit_Window";
 	deletew.lpfnWndProc = WND_Delete_Window;
 	deletew.lpszClassName = L"Delete_Window";
+	editboxw.lpfnWndProc = WND_EditBox_Window;
+	editboxw.lpszClassName = L"EditBox_Window";
 	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(mainw, hInstance);
 	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(logsw, hInstance);
 	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(registerw, hInstance);
@@ -1334,6 +1689,7 @@ void declaratii_WINDCLASSEX(HINSTANCE hInstance)
 	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(searchw, hInstance);
 	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(editw, hInstance);
 	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(deletew, hInstance);
+	declaratii_WINDCLASSEX_fara_lpsz_class_name_si_wndproc(editboxw, hInstance);
 }
 
 void register_class_ex()
@@ -1345,6 +1701,7 @@ void register_class_ex()
 	RegisterClassEx(&searchw);
 	RegisterClassEx(&editw);
 	RegisterClassEx(&deletew);
+	RegisterClassEx(&editboxw);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
