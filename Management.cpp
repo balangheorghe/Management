@@ -1047,6 +1047,121 @@ void search_procedure()
 
 }
 
+void search_procedure_mod()
+{
+	construire_struct();
+	int gwtstats = 0;
+	char searchtext[45];
+	gwtstats = GetWindowTextA(search_textbox, searchtext, 45);
+	if (gwtstats == 0)
+	{
+		//MessageBoxA(0, "Nu ati completat cuvantul de cautat!", "Error!", MB_OK | MB_ICONWARNING);
+		SendMessage(search_listbox, LB_RESETCONTENT, 0, 0);
+		SendMessageA(search_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu ati completat cuvantul de cautat!");
+	}
+	else
+	{
+		SIZE lungimepixeli;
+		int id; char a[50];
+		id = SendMessage(search_combobox, CB_GETCURSEL, 0, 0);
+		SendMessageA(search_combobox, CB_GETLBTEXT, id, (LPARAM)a);
+		if (strcmp(a, "Nume") != 0 && strcmp(a, "Prenume") != 0 && strcmp(a, "Nume mama") != 0 && strcmp(a, "Nume tata") != 0 && strcmp(a, "Varsta") != 0 && strcmp(a, "ID") != 0 && strcmp(a, "Grupa") != 0)
+			MessageBoxA(0, "Nu ati selectat cheia de cautare (cautare dupa)!", "Error!", MB_OK | MB_ICONWARNING);
+		else
+		{
+			long maxlong = 0;
+			_strlwr_(searchtext);
+			int ok = 0, i;
+			char parametru[45];
+			SendMessage(search_listbox, LB_RESETCONTENT, 0, 0);
+			if (strcmp(a, "Nume") == 0)
+			{
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					strcpy(parametru, copil[i].nume);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 1);
+				}
+			}
+			else if (strcmp(a, "Prenume") == 0)
+			{
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					strcpy(parametru, copil[i].prenume);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 1);
+				}
+			}
+			else if (strcmp(a, "ID") == 0)
+			{
+				//debug_struct();
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					char idchar[100];
+					long long id_long;
+					id_long = copil[i].id;
+					int j = 0;
+					while (id_long > 0)
+					{
+						idchar[j] = (char)(id_long % 10 + '0');
+						id_long = id_long / 10;
+						j++;
+					}
+					idchar[j] = NULL;
+					_strrev_(idchar);
+					strcpy(parametru, idchar);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 0);
+				}
+			}
+			else if (strcmp(a, "Varsta") == 0)
+			{
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					char varsta[2];
+					varsta[0] = (char)(copil[i].varsta + '0');
+					varsta[1] = NULL;
+					strcpy(parametru, varsta);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 0);
+				}
+			}
+			else if (strcmp(a, "Grupa") == 0)
+			{
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					char grupa[2];
+					grupa[0] = (char)(copil[i].grupa + '0');
+					grupa[1] = NULL;
+					strcpy(parametru, grupa);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 0);
+				}
+			}
+			else if (strcmp(a, "Nume mama") == 0)
+			{
+
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					strcpy(parametru, copil[i].nume_mama);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 1);
+				}
+			}
+			else if (strcmp(a, "Nume tata") == 0)
+			{
+				for (i = 0;i < nrcopiitotal;i++)
+				{
+					strcpy(parametru, copil[i].nume_tata);
+					itemsearch(parametru, searchtext, ok, lungimepixeli, maxlong, i, 1);
+				}
+			}
+			if (ok == 0)
+			{
+				SendMessageA(search_listbox, LB_ADDSTRING, 0, (LPARAM) "Nu au fost gasite inregistrari conforme cu parametrul cautat!");
+			}
+			maxlong += 10;
+			SendMessageA(search_listbox, LB_SETHORIZONTALEXTENT, maxlong, 0);
+		}
+
+	}
+
+}
+
 LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
@@ -1054,8 +1169,8 @@ LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 	case WM_CREATE:
 		CreateWindow(L"Button", L"Search",WS_BORDER | WS_VISIBLE | WS_CHILD, 680, 5, 70, 20, hwnd, (HMENU)1, 0, 0);
 		CreateWindow(L"Button", L"Back", WS_VISIBLE | WS_CHILD | WS_BORDER, 365, 515, 70, 20, hwnd, (HMENU)2, 0, 0);
-		search_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_SORT | CBS_DROPDOWNLIST , 110, 5, 190, 200, hwnd, 0, 0, 0);
-		search_textbox = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 490, 5, 180, 20, hwnd, 0, 0, 0);
+		search_combobox = CreateWindow(L"Combobox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_SORT | CBS_DROPDOWNLIST , 110, 5, 190, 200, hwnd, (HMENU) 4, 0, 0);
+		search_textbox = CreateWindow(L"Edit", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 490, 5, 180, 20, hwnd, (HMENU) 3, 0, 0);
 		search_listbox = CreateWindow(L"Listbox", L"", WS_BORDER | WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | LBS_DISABLENOSCROLL  , 10, 50, 760, 450, hwnd, 0, 0, 0);
 		//SendMessageA(search_listbox, LB_SETHORIZONTALEXTENT, 1000, 0);
 		initializare_search_combo_list();
@@ -1071,6 +1186,22 @@ LRESULT CALLBACK WND_Search_Window(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 			{
 				search_procedure();
 			}
+		break;
+		}
+		switch (HIWORD(wParam))
+		{
+		case EN_CHANGE:
+		{
+			if (LOWORD(wParam) == 3)
+				search_procedure_mod();
+
+		}
+		break;
+		case CBN_SELCHANGE:
+		{
+			if (LOWORD(wParam) == 4)
+				search_procedure_mod();
+		}
 		break;
 		}
 		break;
